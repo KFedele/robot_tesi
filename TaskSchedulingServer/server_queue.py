@@ -7,15 +7,28 @@ app = FastAPI()
 # Crea una coda per i vettori
 vector_queue = Queue()
 
-# Aggiungi alcuni vettori alla coda (esempio)
-for i in range(1, 6):
-    vector_queue.put([i] * 5)
-
 class VectorRequest(BaseModel):
     pass
 
 class VectorResponse(BaseModel):
     vector: list
+
+def read_vectors_from_file(filename):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
+        vector = []
+        for line in lines:
+            if line.startswith("Vettore"):
+                if vector:
+                    vector_queue.put(vector)
+                    vector = []
+            else:
+                vector.extend(map(int, line.strip().split()))
+        if vector:
+            vector_queue.put(vector)
+
+# Leggi i vettori dal file di testo al momento dell'avvio dell'applicazione
+read_vectors_from_file("mini_piani.txt")
 
 @app.post("/add_vector")
 async def add_vector(vector: VectorRequest):
