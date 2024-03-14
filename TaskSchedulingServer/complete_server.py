@@ -85,18 +85,18 @@ T = 30 #impostare tempo di pulizia
 #Ad ogni minipiano devo associare una matrice miniP (minipiano) ed un vettore mini_c rispettivo
 
 #Dimensioni massime e minime splitting megapiano
-n_mini_pari_min=2
-n_mini_pari_max=4
+n_mini_min=2 #non si può cambiare
+n_mini_max=4 #non si può cambiare
 
-n_mini_dispari_min=2
-n_mini_dispari_max=4
 
 #campione matrice 
 matrice = np.array(vec).reshape((lensqc, lensqc))
+num_colonne = matrice.shape[1]
+num_righe = matrice.shape[0]
 
 
-
-n_pari_ok=n_mini_pari_min #si può scegliere anche n_mini_pari_max, per splittare il piano in 4 parti
+n_pari_ok=n_mini_min #si può scegliere anche n_mini_pari_max, per splittare il piano in 4 parti
+n_dispari_ok=n_mini_min
 
 
 
@@ -104,16 +104,16 @@ n_pari_ok=n_mini_pari_min #si può scegliere anche n_mini_pari_max, per splittar
 
 if n_map% 2 == 0:
 ##########Splitting minimo (2 parti)
-    if n_pari_ok==n_mini_pari_max: 
+    if n_pari_ok==n_mini_max: 
         # Dividi la matrice a metà
                
         #########Metà destra 
-        
-        num_colonne = matrice.shape[1]
+
         meta_sinistra = matrice[:, :num_colonne // 2]
         ob_vec_1 = meta_sinistra.flatten()
         P1=retaut_2(n_map)
         c1=c
+        #Maschera ostacoli
         for i in ob_vec_1:
             P1[i-1,:]=0
             P1[:,i-1]=0
@@ -121,14 +121,14 @@ if n_map% 2 == 0:
         #print(tabulate(P1, tablefmt="fancy_grid"))  
         a = (int(n_map/2))+1
         b = N
-        initial_state = np.zeros(N)
-        initial_state[a-1] = 1
-        final_state = np.zeros(N)
-        final_state[b-1] = 1 
+        initial_state_1 = np.zeros(N)
+        initial_state_1[a-1] = 1
+        final_state_1 = np.zeros(N)
+        final_state_1[b-1] = 1 
         
         #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
 
-        maxPostProg_seq_c1=optimumPath(P1, initial_state,final_state, T, c1)
+        maxPostProg_seq_c1=optimumPath(P1, initial_state_1,final_state_1, T, c1)
         print(maxPostProg_seq_c1)
         
             
@@ -158,8 +158,7 @@ if n_map% 2 == 0:
     else: 
     ########Splitting massimo (4 parti)
        ##Quarto in alto a sinistra (Quarto 1)
-        num_colonne = matrice.shape[1]
-        num_righe = matrice.shape[0]
+        Q=int(n_map/2)
         quarto_1 = matrice[num_righe // 2:, num_colonne // 2:]
         ob_vec_1 = quarto_1.flatten()
         
@@ -171,7 +170,7 @@ if n_map% 2 == 0:
            P1[:,i-1]=0
            c1[i-1]=0 
         a = 1
-        b= int(N/2)-int(n_map/2)      
+        b= matrice[Q-1,Q-1]      
         initial_state_1 = np.zeros(N)
         initial_state_1[a-1] = 1
         final_state_1 = np.zeros(N)
@@ -190,8 +189,8 @@ if n_map% 2 == 0:
            P2[:,i-1]=0
            c2[i-1]=0 
         #print(tabulate(P2, tablefmt="fancy_grid"))
-        a = (int(n_map/2))+1
-        b= int(N/2) 
+        a = Q+1
+        b= matrice[Q-1,n_map-1] 
         
         initial_state_2 = np.zeros(N)
         initial_state_2[a-1] = 1
@@ -213,8 +212,8 @@ if n_map% 2 == 0:
            P3[:,i-1]=0
            c3[i-1]=0 
         #print(tabulate(P2, tablefmt="fancy_grid"))
-        a = int(N/2)+1
-        b= N-int(n_map/2) 
+        a = matrice[Q,0]
+        b= matrice[n_map-1,Q-1] 
         
         initial_state_3 = np.zeros(N)
         initial_state_3[a-1] = 1
@@ -235,12 +234,160 @@ if n_map% 2 == 0:
            P4[:,i-1]=0
            c4[i-1]=0 
         #print(tabulate(P2, tablefmt="fancy_grid"))
-        a = int(N/2)+int(n_map/2)+1
-        b= N
+        a = matrice[Q,Q]
+        b = matrice[n_map-1,n_map-1]
         
         initial_state_4 = np.zeros(N)
         initial_state_4[a-1] = 1
         final_state_4 = np.zeros(N)
         final_state_4[b-1] = 1 
         maxPostProg_seq_c4=optimumPath(P4, initial_state_4,final_state_4, T, c4)
-        print(f"maxPostProg_seq_c4: {maxPostProg_seq_c4}")       
+        print(f"maxPostProg_seq_c4: {maxPostProg_seq_c4}")   
+        
+###########Griglia N dispari x N dispari
+else: 
+
+######Splitting minimo in due piani
+    if n_dispari_ok=n_mini_min:
+    
+    #realizzo solo lo splitting verticale (per semplicità, l'orizzontale è analogo, a parte qualche parametro)
+    ##Matrice a sinistra
+        meta_sinistra = matrice[:, num_colonne // 2:]
+        ob_vec_1 = meta_sinistra.flatten()
+        P1=retaut_2(n_map)
+        c1=c
+        for i in ob_vec_1:
+            P1[i-1,:]=0
+            P1[:,i-1]=0
+            c1[i-1]=0
+        #print(tabulate(P1, tablefmt="fancy_grid"))  
+        a = 1
+        b = N-int(n_map/2) 
+        initial_state_1 = np.zeros(N)
+        initial_state_1[a-1] = 1
+        final_state_1 = np.zeros(N)
+        final_state_1[b-1] = 1 
+        
+        #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
+
+        maxPostProg_seq_c1=optimumPath(P1, initial_state_1,final_state_1, T, c1)
+        print(maxPostProg_seq_c1)        
+        
+    ##Matrice a destra    
+        meta_destra = matrice[:, :num_colonne // 2]
+        ob_vec_2 = meta_destra.flatten()
+        P2=retaut_2(n_map)
+        c2=c
+        
+        for i in ob_vec_2:
+            P2[i-1,:]=0
+            P2[:,i-1]=0
+            c2[i-1]=0
+        #print(tabulate(P2, tablefmt="fancy_grid"))  
+        
+        a = (int(n_map/2))+2
+        b = N
+        initial_state_2 = np.zeros(N)
+        initial_state_2[a-1] = 1
+        final_state_2 = np.zeros(N)
+        final_state_2[b-1] = 1    
+        
+        maxPostProg_seq_c2=optimumPath(P2, initial_state_2,final_state_2, T, c2)
+        print(maxPostProg_seq_c2)        
+    
+    
+    else: #######Splitting Massimo: Quattro piani 
+    
+    #La suddivisione avviene in questo modo: n_map/2=Q con resto R
+        Q=int(n_map/2)
+        R=int(n_map%2)
+    
+        ###Quarto 1: dim = Qx(Q+R) in alto a sinistra
+        quarto_1_indici = np.s_[0:Q, 0:(Q+R)] #OK
+        ob_vec_1 = np.delete(matrice, quarto_1_indici, axis=None)
+        P1=retaut_2(n_map)
+        c1=c
+        for i in ob_vec_1:
+            P1[i-1,:]=0
+            P1[:,i-1]=0
+            c1[i-1]=0
+        #print(tabulate(P1, tablefmt="fancy_grid"))  
+        a = 1
+        b=matrice[Q-1,Q+R-1]
+        initial_state_1 = np.zeros(N)
+        initial_state_1[a-1] = 1
+        final_state_1 = np.zeros(N)
+        final_state_1[b-1] = 1 
+        
+        #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
+
+        maxPostProg_seq_c1=optimumPath(P1, initial_state_1,final_state_1, T, c1)
+        print(maxPostProg_seq_c1) 
+        
+         ###Quarto 2: dim = (Q+R)xQ in alto a destra
+        quarto_2_indici = np.s_[0:(Q+R), (Q+R):n_map] 
+        ob_vec_2 = np.delete(matrice, quarto_2_indici, axis=None)
+        P2=retaut_2(n_map)
+        c2=c
+        for i in ob_vec_2:
+            P2[i-1,:]=0
+            P2[:,i-1]=0
+            c2[i-1]=0
+        #print(tabulate(P1, tablefmt="fancy_grid"))  
+        a = Q+1
+        b=matrice[Q+R-1,n_map-1]
+        initial_state_2 = np.zeros(N)
+        initial_state_2[a-1] = 1
+        final_state_2 = np.zeros(N)
+        final_state_2[b-1] = 1 
+        
+        #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
+
+        maxPostProg_seq_c2=optimumPath(P2, initial_state_2,final_state_2, T, c2)
+        print(maxPostProg_seq_c2) 
+
+        
+         ###Quarto 3: dim = (Q+R)x(Q+R) in basso a sinistra
+        quarto_3_indici = np.s_[Q:n_map, 0:Q+R-1] 
+        ob_vec_3 = np.delete(matrice, quarto_3_indici, axis=None)
+        P3=retaut_2(n_map)
+        c3=c
+        for i in ob_vec_3:
+            P3[i-1,:]=0
+            P3[:,i-1]=0
+            c3[i-1]=0
+        #print(tabulate(P1, tablefmt="fancy_grid"))  
+        a = matrice[Q,0]
+        b= matrice[n_map-1,Q+R-1]
+        initial_state_3 = np.zeros(N)
+        initial_state_3[a-1] = 1
+        final_state_3 = np.zeros(N)
+        final_state_3[b-1] = 1 
+        
+        #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
+
+        maxPostProg_seq_c3=optimumPath(P3, initial_state_3,final_state_3, T, c3)
+        print(maxPostProg_seq_c3)  
+        
+          ###Quarto 4: dim = Q x Q in basso a destra
+        quarto_4_indici = np.s_[Q+R:n_map, Q+R:n_map] 
+        ob_vec_4 = np.delete(matrice, quarto_4_indici, axis=None)
+        P4=retaut_2(n_map)
+        c4=c
+        for i in ob_vec_4:
+            P4[i-1,:]=0
+            P4[:,i-1]=0
+            c4[i-1]=0
+        #print(tabulate(P1, tablefmt="fancy_grid"))  
+        a = matrice[Q+R,Q+R]
+        b = matrice[n_map-1,n_map-1]
+        initial_state_4 = np.zeros(N)
+        initial_state_4[a-1] = 1
+        final_state_4 = np.zeros(N)
+        final_state_4[b-1] = 1 
+        
+        #Ora si può avviare il path ottimo con P1,c1,initial_state e final_state nuovi
+
+        maxPostProg_seq_c4=optimumPath(P4, initial_state_4,final_state_4, T, c4)
+        print(maxPostProg_seq_c4)         
+    
