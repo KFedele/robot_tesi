@@ -76,7 +76,7 @@ c = c / np.sum(c)
 n_map=lensqc
 P = retaut_2(n_map) 
 N, M = P.shape
-T = 30 #impostare tempo di pulizia
+T = 10 #impostare tempo di pulizia
 
 
 ############################################
@@ -95,7 +95,7 @@ num_colonne = matrice.shape[1]
 num_righe = matrice.shape[0]
 
 
-n_pari_ok=n_mini_min #si può scegliere anche n_mini_pari_max, per splittare il piano in 4 parti
+n_pari_ok=n_mini_max #si può scegliere anche n_mini_pari_max, per splittare il piano in 4 parti
 n_dispari_ok=n_mini_min
 
 
@@ -104,7 +104,7 @@ n_dispari_ok=n_mini_min
 
 if n_map% 2 == 0:
 ##########Splitting minimo (2 parti)
-    if n_pari_ok==n_mini_max: 
+    if n_pari_ok==n_mini_min: 
         # Dividi la matrice a metà
                
         #########Metà destra 
@@ -179,8 +179,13 @@ if n_map% 2 == 0:
         print(f"maxPostProg_seq_c1: {maxPostProg_seq_c1}")
         
       ##Quarto alto a destra (Quarto 2)
-        quarto_2 = matrice[num_righe // 2:, :num_colonne // 2]
-        ob_vec_2 = quarto_2.flatten()
+      
+        quarto_2_indici = (slice(0, Q), slice(Q, n_map))
+        quarto_2_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_2_indices_array[quarto_2_indici] = True
+
+        ob_vec_2 = matrice[~quarto_2_indices_array] #OK
+
         P2= retaut_2(n_map)
         c2=c
         
@@ -202,19 +207,28 @@ if n_map% 2 == 0:
                 
       ##Quarto basso a sinistra (Quarto 3)
       
-        quarto_3 = matrice[:num_righe // 2, num_colonne // 2:]   
-        ob_vec_3 = quarto_3.flatten()
-        P3= retaut_2(n_map)
-        c3=c
+
         
+        quarto_3_indici = (slice(Q, n_map), slice(0, Q))
+        quarto_3_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_3_indices_array[quarto_3_indici] = True
+
+        ob_vec_3 = matrice[~quarto_3_indices_array]#OK
+        
+        
+        P3= retaut_2(n_map)
+        
+        c = [elemento[0] for elemento in elementi_posizioni]
+        c = c / np.sum(c)
+        
+        c3=c
         for i in ob_vec_3:
            P3[i-1,:]=0
            P3[:,i-1]=0
            c3[i-1]=0 
         #print(tabulate(P2, tablefmt="fancy_grid"))
         a = matrice[Q,0]
-        b= matrice[n_map-1,Q-1] 
-        
+        b = matrice[n_map-1,Q-1] 
         initial_state_3 = np.zeros(N)
         initial_state_3[a-1] = 1
         final_state_3 = np.zeros(N)
@@ -224,9 +238,13 @@ if n_map% 2 == 0:
         
         
       ##Quarto basso a destra (Quarto 4)
-        quarto_4 = matrice[:num_righe // 2, :num_colonne // 2]   
-        ob_vec_4 = quarto_4.flatten()              
+        quarto_4_indici = (slice(Q, n_map), slice(Q, n_map))
+        quarto_4_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_4_indices_array[quarto_4_indici] = True   
+        ob_vec_4 = matrice[~quarto_4_indices_array]#OK        
         P4= retaut_2(n_map)
+        c = [elemento[0] for elemento in elementi_posizioni]
+        c = c / np.sum(c)        
         c4=c
         
         for i in ob_vec_4:
@@ -248,7 +266,7 @@ if n_map% 2 == 0:
 else: 
 
 ######Splitting minimo in due piani
-    if n_dispari_ok=n_mini_min:
+    if n_dispari_ok==n_mini_min:
     
     #realizzo solo lo splitting verticale (per semplicità, l'orizzontale è analogo, a parte qualche parametro)
     ##Matrice a sinistra
@@ -303,8 +321,15 @@ else:
         R=int(n_map%2)
     
         ###Quarto 1: dim = Qx(Q+R) in alto a sinistra
-        quarto_1_indici = np.s_[0:Q, 0:(Q+R)] #OK
-        ob_vec_1 = np.delete(matrice, quarto_1_indici, axis=None)
+
+        
+        quarto_1_indici = (slice(0, Q), slice(0, (Q+R)))
+        quarto_1_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_1_indices_array[quarto_1_indici] = True   
+        ob_vec_1 = matrice[~quarto_1_indices_array]#OK 
+        
+        
+        
         P1=retaut_2(n_map)
         c1=c
         for i in ob_vec_1:
@@ -327,6 +352,12 @@ else:
          ###Quarto 2: dim = (Q+R)xQ in alto a destra
         quarto_2_indici = np.s_[0:(Q+R), (Q+R):n_map] 
         ob_vec_2 = np.delete(matrice, quarto_2_indici, axis=None)
+        
+        quarto_2_indici = (slice(0, (Q+R)), slice((Q+R), n_map))
+        quarto_2_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_2_indices_array[quarto_2_indici] = True   
+        ob_vec_2 = matrice[~quarto_2_indices_array]#OK         
+        
         P2=retaut_2(n_map)
         c2=c
         for i in ob_vec_2:
@@ -348,8 +379,12 @@ else:
 
         
          ###Quarto 3: dim = (Q+R)x(Q+R) in basso a sinistra
-        quarto_3_indici = np.s_[Q:n_map, 0:Q+R-1] 
-        ob_vec_3 = np.delete(matrice, quarto_3_indici, axis=None)
+        
+        quarto_3_indici = (slice(Q, n_map), slice(0, Q+R-1))
+        quarto_3_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_3_indices_array[quarto_3_indici] = True   
+        ob_vec_3 = matrice[~quarto_3_indices_array]#OK            
+         
         P3=retaut_2(n_map)
         c3=c
         for i in ob_vec_3:
@@ -370,8 +405,10 @@ else:
         print(maxPostProg_seq_c3)  
         
           ###Quarto 4: dim = Q x Q in basso a destra
-        quarto_4_indici = np.s_[Q+R:n_map, Q+R:n_map] 
-        ob_vec_4 = np.delete(matrice, quarto_4_indici, axis=None)
+        quarto_4_indici = (slice(Q+R, n_map), slice(Q+R, n_map))
+        quarto_4_indices_array = np.zeros_like(matrice, dtype=bool)
+        quarto_4_indices_array[quarto_4_indici] = True   
+        ob_vec_4 = matrice[~quarto_4_indices_array]#OK                       
         P4=retaut_2(n_map)
         c4=c
         for i in ob_vec_4:
@@ -390,4 +427,19 @@ else:
 
         maxPostProg_seq_c4=optimumPath(P4, initial_state_4,final_state_4, T, c4)
         print(maxPostProg_seq_c4)         
-    
+ 
+# Specifica il percorso del file di output
+percorso_minipiani = "mini_piani.txt"
+
+# Scrivi i vettori sul file con un'intestazione per ogni vettore
+with open(percorso_minipiani, 'w') as f:
+    f.write("Vettore 1:\n")
+    f.write(' '.join(map(str, maxPostProg_seq_c1)) + '\n')
+    f.write("Vettore 2:\n")
+    f.write(' '.join(map(str, maxPostProg_seq_c2)) + '\n')
+    f.write("Vettore 3:\n")
+    f.write(' '.join(map(str, maxPostProg_seq_c3)) + '\n')
+    f.write("Vettore 4:\n")
+    f.write(' '.join(map(str, maxPostProg_seq_c4)) + '\n')
+
+print("Percorsi minipiani scritti su file:", percorso_minipiani) 
