@@ -12,23 +12,23 @@ image_folder_path = 'C:/Users/katyl/Desktop/Codici_tesi/ConversioneDati/MachineL
 # Specifica il percorso del file di output
 output_file_path = 'c1.txt'
 
-# try:
-    # os.remove(output_file_path)
-    # print(f"Il file {output_file_path} è stato cancellato con successo.")
-# except FileNotFoundError:
-    # print(f"Il file {output_file_path} non esiste.")
-# except PermissionError:
-    # print(f"Impossibile cancellare il file {output_file_path}. Assicurati di avere i permessi necessari.")
-# except Exception as e:
-    # print(f"Si è verificato un errore durante la cancellazione del file {output_file}: {e}")
-##Iterate through all images in the folder
-# for filename in os.listdir(image_folder_path):
-    # if filename.endswith(('.jpg', '.png', '.jpeg')):
-        # image_path = os.path.join(image_folder_path, filename)
-        # imperfection_count = highlight_imperfections(image_path, output_file_path)
-        # print(f"{os.path.basename(image_path)} - Imperfection Level: {imperfection_count}")
+try:
+    os.remove(output_file_path)
+    print(f"Il file {output_file_path} è stato cancellato con successo.")
+except FileNotFoundError:
+    print(f"Il file {output_file_path} non esiste.")
+except PermissionError:
+    print(f"Impossibile cancellare il file {output_file_path}. Assicurati di avere i permessi necessari.")
+except Exception as e:
+    print(f"Si è verificato un errore durante la cancellazione del file {output_file}: {e}")
+#Iterate through all images in the folder
+for filename in os.listdir(image_folder_path):
+    if filename.endswith(('.jpg', '.png', '.jpeg')):
+        image_path = os.path.join(image_folder_path, filename)
+        imperfection_count = highlight_imperfections(image_path, output_file_path)
+        print(f"{os.path.basename(image_path)} - Imperfection Level: {imperfection_count}")
 
-# print("Imperfection counts written to", output_file_path)
+print("Imperfection counts written to", output_file_path)
 
 #################################################
 
