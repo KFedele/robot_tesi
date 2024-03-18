@@ -16,7 +16,7 @@
 #include "esp_camera.h"
 #include "camera_pins.h"
 
-
+#define MAX_RETRY_ATTEMPTS 100
 
 
 //Metodi per telecamera
@@ -189,7 +189,13 @@ void loop() {
 
 
 /////////////PULIZIA
+  while (!client.connect(serverAddress, serverPort)) {
+    Serial.println("Failed to connect to server. Retrying in 0.1 seconds...");
+    delay(100);  // Ritardo di 0.5 secondi tra i tentativi
+  }
+  current_position=receivedNumbers[0];
   for (int i=0;i<receivedNumbers.size();i++){
+    
     future_position=receivedNumbers[i];
     customRobot.findIndex(matrix,future_position,row_fut,col_fut);
     customRobot.findIndex(matrix,current_position,row_curr,col_curr);
@@ -197,21 +203,25 @@ void loop() {
       //fermo
       delay(1000);
       Buzzer_Alert(3,1);
-      notifyServer();
+      //notifyServer();
     }
     else if(row_curr==row_fut){ //dx o sx
      if (col_fut==col_curr+1){
 
       customRobot.movimentoADestra();
+
       delay(1000);
       Buzzer_Alert(3,1);
       notifyServer();
+      delay(1000);
      }
      else{
       customRobot.movimentoASinistra();
+
       delay(1000);
       Buzzer_Alert(3,1);
       notifyServer();
+      delay(1000);
      }
 
     }
@@ -222,17 +232,24 @@ void loop() {
       delay(1000);
       Buzzer_Alert(3,1);
       notifyServer();
+      delay(1000);
+      
      }
      else{
       customRobot.movimentoInAlto();
-      delay(1000);
       Buzzer_Alert(3,1);
       notifyServer();
+      delay(1000);
+
      }
 
     }
   current_position=future_position;
   }
+  customRobot.step_back();
+  notifyServer();
+
+  delay(5000);
   
 
 }
@@ -240,30 +257,43 @@ void loop() {
 /////////////////////////Per inviare le foto al server
 
 void notifyServer() {
-
-
   // Costruisci la richiesta HTTP
-  // Costruisci la richiesta HTTP
+  while (!client.connect(serverAddress, serverPort)) {
+  Serial.println("Failed to connect to server. Retrying in 0.1 seconds...");
+  delay(100);  // Ritardo di 0.5 secondi tra i tentativi
+}
   String request = "GET /capture?_cb=" + String(millis()) + " HTTP/1.1\r\n";
   request.concat("Host: " + String(serverAddress) + "\r\n\r\n");
 
   // Invia la richiesta HTTP
   client.print(request);
 
+
+
   // Aspetta la risposta dal server
   while (client.connected() && !client.available()) {
     delay(10);
   }
-
-  // Leggi la risposta dal server
-  String response = client.readStringUntil('\r');
-  if (response.length() > 0) {
-      Serial.println("Server response: " + response);
-  } else {
-      Serial.println("No response from server");
+  // Aspetta la risposta dal server
+  int retryCount = 0;
+  while (retryCount < MAX_RETRY_ATTEMPTS && !client.available()) {
+    delay(10);
+    retryCount++;
   }
 
+
+  // Leggi la risposta dal server se disponibile
+  String response="";
+  if (client.available()) {
+    response = client.readStringUntil('\r');
+    Serial.println("Server response: " + response);
+  } else {
+    Serial.println("No response from server after " + String(MAX_RETRY_ATTEMPTS) + " attempts");
+    // Gestire l'errore o interrompere l'esecuzione
+  }
+  client.stop();
 }
+
 
 
 void getVectorFromServer() {
@@ -271,7 +301,7 @@ void getVectorFromServer() {
     Serial.println("Connected to server");
     client.println("GET /get_vector HTTP/1.1");
     client.println("Host: " + String(serverAddress));
-    //client.println("Connection: close");
+    client.println("Connection: close");
     client.println();
   } else {
     Serial.println("Connection to server failed");

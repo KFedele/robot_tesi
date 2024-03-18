@@ -16,7 +16,7 @@ void CustomRobotLibrary::turn_90_dx() {
 }
 
 void CustomRobotLibrary::turn_180_dx() {
-  Motor_Move(-ROTATION*2, -ROTATION*2, ROTATION*2, ROTATION*2);
+  Motor_Move(-ROTATION*2, -ROTATION*1.5, ROTATION*1.5, ROTATION*1.5);
   delay(1000);
   Motor_Move(0, 0, 0, 0);
 }
@@ -56,6 +56,7 @@ void CustomRobotLibrary::movimentoADestra(){
       break;
 
     case 3:
+      //step_forward();
       turn_180_dx();
       step_back();
       orientamento_corrente=4;
@@ -95,6 +96,7 @@ void CustomRobotLibrary::movimentoASinistra(){
       break;
 
     case 4:
+     // step_forward();
       turn_180_dx();
       step_back();
       orientamento_corrente=3;
@@ -119,6 +121,7 @@ void CustomRobotLibrary::movimentoInBasso(){
       // Rivolto verso il basso
       turn_180_dx();
       step_back();
+      //step_forward();
       orientamento_corrente=1;
       break;
 
@@ -132,7 +135,7 @@ void CustomRobotLibrary::movimentoInBasso(){
 
     case 4:
       // Rivolto a sinistra
-      turn_90_sx();
+      turn_90_dx();
       delay(1000);
       step_back();
       orientamento_corrente=1;
@@ -151,6 +154,7 @@ void CustomRobotLibrary::movimentoInAlto(){
       // Codice da eseguire se il numero è 1
       turn_180_dx();
       step_back();
+     // step_forward();
       orientamento_corrente=2;
       break;
 
