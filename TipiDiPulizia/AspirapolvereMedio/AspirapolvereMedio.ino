@@ -260,12 +260,12 @@ void loop() {
   Serial.println("Failed to connect to server. Retrying in 0.1 seconds...");
   delay(100);  // Ritardo di 0.5 secondi tra i tentativi
 }
-  client.print("END_TRANSMISSION mini_piano_number=" + String(miniPianoNumber) + "\r\n");
+  String request = "GET /end_transmission?mini_piano_number=" + String(miniPianoNumber) + " HTTP/1.1\r\n";
+  request.concat("Host: " + String(serverAddress) + "\r\n");
+  request.concat("Connection: close\r\n\r\n");  // Aggiungi il campo Connection e termina la richiesta con due linee vuote
+  client.print(request);  // Invia la richiesta
+  delay(5000);  // Attendere un po' per la risposta
   client.stop(); // Chiudi nuovamente la connessione TCP
-  
-  
-
-  delay(5000);
   
 
 }

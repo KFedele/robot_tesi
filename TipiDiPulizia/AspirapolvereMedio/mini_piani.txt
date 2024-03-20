@@ -1,5 +1,5 @@
 Mini-piano 1:
-1 1 1 1 1 1 1 1 2 6
+1 2 6
 Mini-piano 2:
 3 3 3 3 3 3 3 3 7 8
 Mini-piano 3:
