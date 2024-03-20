@@ -1,0 +1,5 @@
+2024-03-20 09:03:53, Position: 11, Reward: 4
+2024-03-20 09:04:00, Position: 12, Reward: 11
+2024-03-20 09:04:08, Position: 16, Reward: 9
+2024-03-20 09:04:19, Position: 11, Reward: 3
+2024-03-20 09:04:57, Position: 11, Reward: 8
