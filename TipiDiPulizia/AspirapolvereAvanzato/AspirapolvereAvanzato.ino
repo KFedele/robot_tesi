@@ -16,7 +16,7 @@
 #include "esp_camera.h"
 #include "camera_pins.h"
 
-#define MAX_RETRY_ATTEMPTS 100
+#define MAX_RETRY_ATTEMPTS 10000
 
 
 //Metodi per telecamera
@@ -29,7 +29,7 @@ void notifyServer();
 //Config WiFi
 const char* ssid = "TIM-22909625";
 const char* password = "WWDo4Iura2LYq49raLPQlMiE";
-const char* serverAddress = "192.168.1.52";
+const char* serverAddress = "192.168.1.81";
 const int serverPort = 12345;
 WiFiClient client;
 
@@ -198,9 +198,10 @@ void loop() {
     Serial.println("Failed to connect to server. Retrying in 0.1 seconds...");
     delay(100);  // Ritardo di 0.5 secondi tra i tentativi
   }
-  current_position=receivedNumbers[0];
+  
 
   while (end_cycle==false){
+    current_position=receivedNumbers[0];
   for (int i=0;i<receivedNumbers.size();i++){
     
     future_position=receivedNumbers[i];
@@ -254,14 +255,21 @@ void loop() {
 
     }
   current_position=future_position;
-  if (received_update==true){
+  if (i==receivedNumbers.size()-1){ //quando finisce il for dovrebbe uscire dal while (ha finito la pulizia)
+    end_cycle=true;
+    Serial.println("End Cycle");
+    break;
+
+  }
+    if (received_update==true){ //se riceve nuovi numeri sostituisce il valore dei numeri ricevuti ed esce dal for, rimanendo però nel while
     receivedNumbers.clear();
     receivedNumbers=new_receivedNumbers;
+    received_update=false;
+    Serial.println("Breaking for..");
     break;
   }
-  if (i==receivedNumbers.size()){
-    end_cycle=true;
-  }}//FIne for 
+  
+  }//FIne for 
   } //Fine while
   customRobot.step_back();
   notifyServer();
@@ -347,6 +355,7 @@ void notifyServer() {
             ptr = strtok(NULL, " ");
         }      
         received_update=true;
+        printVector(new_receivedNumbers);
     }
 
 
@@ -431,4 +440,11 @@ void handleDirtyResponse(){
   }
   customRobot.step_back();
   notifyServer();
+}
+
+// Funzione per stampare il contenuto di un vettore sulla porta seriale
+void printVector(const std::vector<int>& vec) {
+  for (int num : vec) {
+    Serial.println(num);  // Stampa ogni numero del vettore seguito da una nuova riga
+  }
 }

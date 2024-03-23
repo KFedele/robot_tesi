@@ -8,7 +8,6 @@ import requests
 import numpy as np
 from optimumPath import optimumPath
 import glob
-import logging
 
 from impFindSingolo import count_imperfections
 
@@ -20,8 +19,8 @@ app = FastAPI()
 # Crea una coda per i vettori
 vector_queue = Queue()
 
-logging.basicConfig(level=logging.DEBUG) #logging
-UPLOAD_FOLDER = "C:/Users/katyl/Desktop/Codici_tesi/MangiaPolvere/AspirapolvereAvanzato/uploads"
+
+UPLOAD_FOLDER = "C:/Users/katyl/Desktop/Codici_tesi/MangiaPolvere/AspirapolvereMedio/uploads"
 app.state.UPLOAD_FOLDER = UPLOAD_FOLDER
 adv_clean=0
 
@@ -116,12 +115,9 @@ def get_vector_from_file(file_name, mini_piano_number):
     with open(file_name, 'r') as file:
         for line in file:
             if target_mini_piano in line:
-                next_line = next(file, None)
-                if next_line:
-                    vector = next_line.strip()
-                    if vector:  # Assicurati che la riga non sia vuota
-                        vector = list(map(int, vector.split()))
-                        return vector
+                vector = line.split(":")[1].strip()
+                vector = list(map(int, vector.split()))
+                return vector
     return None
 
 
@@ -141,59 +137,70 @@ async def get_queue():
 async def add_vector(vector: VectorRequest):
     vector_queue.put(vector.vector)
     return {"message": "Vector added successfully"}
-
-import asyncio
+    
+########################################################################################à
 
 @app.get("/get_vector")
 async def get_vector():
     global num_adv_robot, waiting, help_minipiano, second_half, help_requests
-    
-    if vector_queue.empty(): #Se la coda è vuota
-        if num_adv_robot != 0:  # se ci sono robot in pulizia avanzata (siamo quindi nel caso del client2)
-            help_requests=1
-            print(help_requests)
-            print("In attesa di un robot da aiutare/piano da pulire... ")
 
-            while waiting==True: #finchè waiting è true
-                await asyncio.sleep(1)  # Attendiamo per 1 sec
-            if help_minipiano==0:
-                print("Non è stato possibile concordare lo splitting")
-                help_requests=0
-            else:
-                print(f"Trovato minipiano n: {help_minipiano} \n Piano di pulizia: {second_half}")
-                num_adv_robot -= 1 
-                vector_with_mini_piano_number = {"mini_piano_number": help_minipiano, "vector": second_half}
-                vector_with_end_string = vector_with_mini_piano_number.copy()
-                vector_with_end_string["vector"].append("END")  # Aggiungi la stringa "END" al vettore
-                help_requests=0                
-                return vector_with_end_string #Qui perciò dovrebbe arrivare a client2 il vettore
+    # Se c'è un client in attesa di assegnare la seconda metà del minipiano, attendi fino a quando non arriva la cattura
+    while help_requests != 0:
+        await asyncio.sleep(10)  # Attendi per 1 secondo
+
+    if vector_queue.empty():
+        if num_adv_robot != 0:  # se ci sono robot in pulizia avanzata
+            print("In attesa di un robot da aiutare/piano da pulire... ")
+            help_requests = 1
+            while waiting:
+                await asyncio.sleep(10)  # Attendiamo per 1 secondo
+            print(f"Trovato minipiano n: {help_minipiano} \n Piano di pulizia: {second_half}")
+            num_adv_robot -= 1 
+            vector_with_mini_piano_number = {"mini_piano_number": help_minipiano, "vector": second_half}
+            vector_with_end_string = vector_with_mini_piano_number.copy()
+            vector_with_end_string["vector"].append("END")  # Aggiungi la stringa "END" al vettore        
+            return vector_with_end_string
             
-        else:#Se non c'è nessun robot in pulizia avanzata 
+        else:
             raise HTTPException(status_code=404, detail="No vectors available")
     else:
         if adv_clean == 1:
             num_adv_robot += 1
         mini_piano_number, vector = vector_queue.get()
-        log_file_path = f"uploads/{mini_piano_number}/log.txt"
-        if os.path.exists(log_file_path):
-            os.remove(log_file_path)
-        # Cancella i file .jpg
-        jpeg_files_path = f"uploads/{mini_piano_number}/*.jpg"
-        jpeg_files = glob.glob(jpeg_files_path)
-        for file_path in jpeg_files:
-            os.remove(file_path)  
-        #cancella i .jpg analizzati
-        jpeg_files_path = f"uploads/{mini_piano_number}/analyzed/*.jpg"
-        jpeg_files = glob.glob(jpeg_files_path)
-        for file_path in jpeg_files:
-            os.remove(file_path)              
         
-        vector_with_mini_piano_number = {"mini_piano_number": mini_piano_number, "vector": vector}
-        vector_with_end_string = vector_with_mini_piano_number.copy()
-        vector_with_end_string["vector"].append("END")  # Aggiungi la stringa "END" al vettore
-        
-        return vector_with_end_string
+        if help_requests != 0:
+            # Se c'è un client in attesa di assegnare la seconda metà del minipiano
+            first_half, second_half = split_vector(vector)
+            help_minipiano = mini_piano_number
+            waiting = False
+            help_requests = 0
+            
+            # Invia la seconda metà del minipiano al client in attesa
+            vector_with_mini_piano_number = {"mini_piano_number": help_minipiano, "vector": second_half}
+            vector_with_end_string = vector_with_mini_piano_number.copy()
+            vector_with_end_string["vector"].append("END")  # Aggiungi la stringa "END" al vettore
+            return vector_with_end_string
+        else:
+            # Se non ci sono client in attesa, invia il minipiano completo al client
+            log_file_path = f"uploads/{mini_piano_number}/log.txt"
+            if os.path.exists(log_file_path):
+                os.remove(log_file_path)
+            jpeg_files_path = f"uploads/{mini_piano_number}/*.jpg"
+            jpeg_files = glob.glob(jpeg_files_path)
+            for file_path in jpeg_files:
+                os.remove(file_path)  
+            jpeg_files_path = f"uploads/{mini_piano_number}/analyzed/*.jpg"
+            jpeg_files = glob.glob(jpeg_files_path)
+            for file_path in jpeg_files:
+                os.remove(file_path)              
+            
+            vector_with_mini_piano_number = {"mini_piano_number": mini_piano_number, "vector": vector}
+            vector_with_end_string = vector_with_mini_piano_number.copy()
+            vector_with_end_string["vector"].append("END")  # Aggiungi la stringa "END" al vettore
+            
+            return vector_with_end_string
 
+##########################################################################################################################
 
 
 
@@ -230,62 +237,44 @@ def acquisisci_immagine_da_esp32(client_ip: str):
 
 @app.get("/capture")
 async def capture_image(request: Request, mini_piano_number: int, current_position: int):
-    global help_requests, second_half,help_minipiano,waiting
     try:
-        
-        print("Server received capture request")
         client_ip = request.client.host
         percorso_cartella = os.path.join(UPLOAD_FOLDER, str(mini_piano_number))
 
-        # Verifica se la cartella del minipiano esiste, altrimenti creala
         if not os.path.exists(percorso_cartella):
             os.makedirs(percorso_cartella)
 
-        # Costruisci il percorso del file utilizzando il numero di minipiano e il timestamp attuale
         timestamp_attuale = int(datetime.timestamp(datetime.now()) * 1000)
         nome_file = f"{timestamp_attuale}.jpg"
         percorso_file = os.path.join(percorso_cartella, nome_file)
 
-        # Effettua la richiesta HTTP per acquisire l'immagine dall'ESP32
         ESP32_URL = f"http://{client_ip}/capture"
         response = requests.get(ESP32_URL)
 
-        # Salva l'immagine nel percorso specificato
         if response.status_code == 200:
             with open(percorso_file, 'wb') as file:
                 file.write(response.content)
             imperfection_count, _ = count_imperfections(percorso_file)
-
-            # Scrivi le informazioni nel file di log
             write_to_file(mini_piano_number, current_position, imperfection_count)
 
-            # Invia la risposta in base al valore di imperfection count
             message = "clean" if imperfection_count < 20 else "dirty"
-            print("out if")
-            if help_requests!=0: #Se c'è qualcuno che ha chiesto lo splitting 
-                print("in if")
-                message2="SPLIT_WORK:"
-                #Occorre mandare il nuovo vettore al robot-quello che ha già percorso
-                current_vector=get_vector_from_file("mini_piani_interi.txt",mini_piano_number)
-                
-                sub_vector=get_subvector_from_value(current_vector, current_position) #crea un sottovettore delle caselle ancora da pulire
-                first_half,second_half=split_vector(sub_vector)
-                # Concatenazione di first_half a message2
-                message = message+"&"+message2 + " " + " ".join(map(str, first_half))
-                help_minipiano=mini_piano_number
-                print("Concordato lo splitting con client 2; nuova sequenza di spostamenti: \n")
-                print(first_half)
-                waiting=False
-                help_requests=0
-                
-                await asyncio.sleep(10)         
             
-            return {"message": message} 
-
+            if help_requests != 0:
+                message2 = "SPLIT_WORK:"
+                current_vector = get_vector_from_file("mini_piani_interi.txt", mini_piano_number)
+                sub_vector = get_subvector_from_value(current_vector, current_position)
+                first_half, second_half = split_vector(sub_vector)
+                message = message + "&" + message2 + " " + " ".join(map(str, first_half))
+                
+                # Invia la seconda metà al secondo client
+                return {"message": message, "second_half": second_half}
+            else:
+                return {"message": message}
         else:
             return {"error": "Errore durante l'acquisizione dell'immagine"}
     except Exception as e:
         return {"error": f"Errore: {str(e)}"}
+
 
 @app.get("/uploads/{mini_piano_number}/{file_name}")
 async def get_uploaded_file(file_name: str, mini_piano_number: int):
@@ -346,7 +335,7 @@ def update_rewards(mini_piano_number):
 @app.get("/end_transmission")
 async def end_transmission(mini_piano_number: str = Query(..., alias="mini_piano_number")):
     # Qui puoi chiamare la funzione per gestire l'evento end_transmission
-    global num_adv_robot
+    
     MaxpostProg_seq_c = update_rewards(mini_piano_number)
     if MaxpostProg_seq_c is not None:
         vector_queue.put((int(mini_piano_number), MaxpostProg_seq_c))
