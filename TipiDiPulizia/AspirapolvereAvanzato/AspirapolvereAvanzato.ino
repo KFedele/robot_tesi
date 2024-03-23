@@ -203,7 +203,7 @@ void loop() {
   while (end_cycle==false){
     current_position=receivedNumbers[0];
   for (int i=0;i<receivedNumbers.size();i++){
-    
+
     future_position=receivedNumbers[i];
     customRobot.findIndex(matrix,future_position,row_fut,col_fut);
     customRobot.findIndex(matrix,current_position,row_curr,col_curr);
@@ -268,8 +268,9 @@ void loop() {
     Serial.println("Breaking for..");
     break;
   }
-  
-  }//FIne for 
+   
+  }//FIne for
+   
   } //Fine while
   customRobot.step_back();
   notifyServer();

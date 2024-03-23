@@ -267,8 +267,9 @@ async def capture_image(request: Request, mini_piano_number: int, current_positi
                 message2="SPLIT_WORK:"
                 #Occorre mandare il nuovo vettore al robot-quello che ha già percorso
                 current_vector=get_vector_from_file("mini_piani_interi.txt",mini_piano_number)
-                
-                sub_vector=get_subvector_from_value(current_vector, current_position) #crea un sottovettore delle caselle ancora da pulire
+                indice_current_position = current_vector.index(current_position)
+                current_position_1=current_vector[indice_current_position+1]
+                sub_vector=get_subvector_from_value(current_vector, current_position_1) #crea un sottovettore delle caselle ancora da pulire
                 first_half,second_half=split_vector(sub_vector)
                 # Concatenazione di first_half a message2
                 message = message+"&"+message2 + " " + " ".join(map(str, first_half))
